@@ -1203,12 +1203,12 @@ contract Manarium is ERC20, Ownable
 
 
     function updateBuyTax(uint256 tax) external onlyOwner {
-        require( tax >= 0 && buyTax != tax);
+        require( tax >= 0 && buyTax != tax && buyTax <= 12);
         buyTax = tax;
     }
 
     function updateSellTax(uint256 tax) external onlyOwner {
-        require( tax >= 0 && sellTax != tax);
+        require( tax >= 0 && sellTax != tax && sellTax <= 12);
         sellTax = tax;
     }
 
