@@ -1098,8 +1098,8 @@ contract Manarium is ERC20, Ownable
     // WBNB MAINNET: 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c
     address constant WBNB = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c;
     
-    address constant public PRIZE_POOL_WALLET = 0x3e44881b4BC060FC3cF202b796147022Cd8e80C3;
-    address constant public DEVELOPMENT_WALLET = 0x1664a715B15345C50bdd3b92Bf3EB7a4E4d39B4A;
+    address public prizePoolWallet = 0x3e44881b4BC060FC3cF202b796147022Cd8e80C3;
+    address public developmentWallet = 0x1664a715B15345C50bdd3b92Bf3EB7a4E4d39B4A;
     address constant public REFERRAL_WALLET = 0x739F3d09fF6AD00610e1D5B34B21eA8Bf4F6C125;
     address constant public AIRDROP_WALLET = 0x38D457F0BAA0aa3cC6Cf0496e9eb12870a2AecdF;
 
@@ -1148,9 +1148,9 @@ contract Manarium is ERC20, Ownable
         excludeFromFeesAndDividends(address(this), true);
         excludeFromFeesAndDividends(address(0), true);
         excludeFromFeesAndDividends(msg.sender, true);
-        excludeFromFeesAndDividends(DEVELOPMENT_WALLET, true);
+        excludeFromFeesAndDividends(prizePoolWallet, true);
         excludeFromFeesAndDividends(REFERRAL_WALLET, true);
-        excludeFromFeesAndDividends(PRIZE_POOL_WALLET, true);
+        excludeFromFeesAndDividends(developmentWallet, true);
         excludeFromFeesAndDividends(AIRDROP_WALLET, true);
 
         _isBurneable[msg.sender] = true;
@@ -1212,6 +1212,16 @@ contract Manarium is ERC20, Ownable
         sellTax = tax;
     }
 
+    function updatePrizePoolWallet(address address_) external onlyOwner{
+        require(address_ != prizePoolWallet);
+        prizePoolWallet = address_;
+    }
+
+    function updateDevelopmentWallet(address address_) external onlyOwner{
+        require(address_ != developmentWallet);
+        developmentWallet = address_;
+    }
+
     function updateThresholdProcents(uint256 prizePool, uint256 distribution, uint256 development) external onlyOwner {
         require(prizePool >= 0 && distribution >= 0 && development >= 0);
         require(prizePool.add(distribution).add(development) <= 100);
@@ -1270,7 +1280,7 @@ contract Manarium is ERC20, Ownable
 
         // Tokens from the Prize Pool Wallet do not require approve. 
         // They can only be used by tournament contracts (check on _transfer)
-        if(sender == PRIZE_POOL_WALLET) {
+        if(sender == prizePoolWallet) {
             _transfer(sender, recipient, amount);
             return true;
         }
@@ -1290,7 +1300,7 @@ contract Manarium is ERC20, Ownable
         address recipient,
         uint256 amount)
     internal override {
-        if(sender == PRIZE_POOL_WALLET) require(_tournaments[msg.sender], 'Tokens from PRIZE_POOL_WALLET can sends only from tournaments.');
+        if(sender == prizePoolWallet) require(_tournaments[msg.sender], 'Tokens from PRIZE_POOL_WALLET can sends only from tournaments.');
 
         if(shouldTakeFee(sender, recipient))
             amount = takeFee(sender, amount);
@@ -1355,7 +1365,7 @@ contract Manarium is ERC20, Ownable
     }
 
     function sendToDevelopment(uint256 amount) private returns (bool){
-        (bool success, ) = payable(DEVELOPMENT_WALLET).call{value: amount, gas: 30000}("");
+        (bool success, ) = payable(developmentWallet).call{value: amount, gas: 30000}("");
         return success;
     }
 
@@ -1365,7 +1375,7 @@ contract Manarium is ERC20, Ownable
     }
     
     function sendToPrizePool(uint256 amount) private {
-        _transfer(address(this), PRIZE_POOL_WALLET, amount);
+        _transfer(address(this), prizePoolWallet, amount);
         emit SendTokensForRewards(amount);
     }
 
