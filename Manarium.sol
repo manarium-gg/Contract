@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity 0.8.4;
 
 // CAUTION
 // This version of SafeMath should only be used with Solidity 0.8 or later,
@@ -227,7 +227,7 @@ library SafeMath {
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity 0.8.4;
 
 /**
  * @dev Provides information about the current execution context, including the
@@ -251,7 +251,7 @@ abstract contract Context {
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity 0.8.4;
 
 /**
  * @dev Collection of functions related to the address type
@@ -468,7 +468,7 @@ library Address {
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity 0.8.4;
 
 import "../utils/Context.sol";
 
@@ -541,7 +541,7 @@ abstract contract Ownable is Context {
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity 0.8.4;
 
 /**
  * @dev Interface of the ERC20 standard as defined in the EIP.
@@ -624,7 +624,7 @@ interface IERC20 {
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity 0.8.4
 
 import "../IERC20.sol";
 
@@ -653,7 +653,7 @@ interface IERC20Metadata is IERC20 {
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.4;
+pragma solidity 0.8.4;
 
 
 interface IDEXFactory {
@@ -710,7 +710,7 @@ interface IDEXRouter {
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.4;
+pragma solidity 0.8.4;
 
 interface IDividendDistributor {
     function setShare(address shareholder, uint256 amount) external;
@@ -722,7 +722,7 @@ interface IDividendDistributor {
 
 
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity 0.8.4;
 
 interface ILiquidityRestrictor {
 	function assureByAgent(
@@ -748,7 +748,7 @@ interface IAntisnipe {
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity 0.8.0;
 
 import "./IERC20.sol";
 import "./extensions/IERC20Metadata.sol";
@@ -1104,7 +1104,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.4;
+pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
@@ -1135,7 +1135,7 @@ contract Manarium is ERC20, Ownable
     IDividendDistributor private _distributor;
 
     IAntisnipe public antisnipe = IAntisnipe(address(0));
-	ILiquidityRestrictor public liquidityRestrictor = ILiquidityRestrictor(0xeD1261C063563Ff916d7b1689Ac7Ef68177867F2);
+    ILiquidityRestrictor public liquidityRestrictor = ILiquidityRestrictor(0xeD1261C063563Ff916d7b1689Ac7Ef68177867F2);
 
     uint256 public buyTax = 5; // 5%
     uint256 public sellTax = 8; // 8%
@@ -1148,7 +1148,7 @@ contract Manarium is ERC20, Ownable
     uint256 constant public PROCENT_DENOMINATOR = 100; // 100%
 
     bool public antisnipeEnabled = true;
-	bool public liquidityRestrictionEnabled = true;
+   bool public liquidityRestrictionEnabled = true;
 
     bool public feesEnabled = true;
     bool private _inSwap;    
@@ -1206,7 +1206,7 @@ contract Manarium is ERC20, Ownable
         return _isExcludedFromDividends[account_];
     }
 
-    function isBurneable(address address_) public view returns(bool){
+    function canBurn(address address_) public view returns(bool){
         return _isBurneable[address_];
     }
 
@@ -1265,31 +1265,29 @@ contract Manarium is ERC20, Ownable
 	require(antisnipeEnabled);
 	antisnipeEnabled = false;
 	emit AntisnipeDisabled(block.timestamp, msg.sender);
-   }
+    }
 
-   function setLiquidityRestrictorDisable() external onlyOwner {
+    function setLiquidityRestrictorDisable() external onlyOwner {
 	require(liquidityRestrictionEnabled);
 	liquidityRestrictionEnabled = false;
 	emit LiquidityRestrictionDisabled(block.timestamp, msg.sender);
    }
 
-   function setAntisnipeAddress(address addr) external onlyOwner {
+    function setAntisnipeAddress(address addr) external onlyOwner {
 	antisnipe = IAntisnipe(addr);
 	emit AntisnipeAddressChanged(addr);
-   }
+    }
 
-   function setLiquidityRestrictionAddress(address addr) external onlyOwner {
+    function setLiquidityRestrictionAddress(address addr) external onlyOwner {
 	liquidityRestrictor = ILiquidityRestrictor(addr);
 	emit LiquidityRestrictionAddressChanged(addr);
-   }
+    }
 
     function updateBuyTax(uint256 tax) external onlyOwner {
-        require( tax >= 0 && buyTax != tax && buyTax <= 12);
         buyTax = tax;
     }
 
     function updateSellTax(uint256 tax) external onlyOwner {
-        require( tax >= 0 && sellTax != tax && sellTax <= 12);
         sellTax = tax;
     }
 
@@ -1304,7 +1302,6 @@ contract Manarium is ERC20, Ownable
     }
 
     function updateThresholdProcents(uint256 prizePool, uint256 distribution, uint256 development) external onlyOwner {
-        require(prizePool >= 0 && distribution >= 0 && development >= 0);
         require(prizePool.add(distribution).add(development) <= 100);
         prizePoolProcent = prizePool;
         distributionProcent = distribution;
@@ -1346,7 +1343,7 @@ contract Manarium is ERC20, Ownable
 
 
     function burn(uint256 amount) external{
-        require(isBurneable(msg.sender), "Burn can only burneable addresses");
+        require(canBurn(msg.sender), "Burn can only burneable addresses");
         require(amount <= balanceOf(msg.sender));
         
         _burn(msg.sender, amount);
@@ -1485,7 +1482,7 @@ contract Manarium is ERC20, Ownable
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.4;
+pragma solidity 0.8.4;
 
 import "./interfaces/IDividendDistributor.sol";
 import "./interfaces/IDex.sol";
@@ -1496,7 +1493,7 @@ contract DividendDistributor is IDividendDistributor {
 
     using SafeMath for uint256;
 
-    address _token;
+    address immutable _token;
 
     struct Share {
         uint256 amount;
@@ -1504,17 +1501,17 @@ contract DividendDistributor is IDividendDistributor {
         uint256 totalRealised;
     }
 
-    IDEXRouter router;
+    IDEXRouter immutable router;
     
     // WBNB MAINNET: 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c
     address constant WBNB = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c;
     
     // USDT MAINNET: 0x55d398326f99059fF775485246999027B3197955
-    address dividendToken = 0x55d398326f99059fF775485246999027B3197955;
+    address constant dividendToken = 0x55d398326f99059fF775485246999027B3197955;
 
-    address[] shareholders;
-    mapping (address => uint256) shareholderIndexes;
-    mapping (address => uint256) shareholderClaims;
+    address[] private shareholders;
+    mapping (address => uint256) private shareholderIndexes;
+    mapping (address => uint256) private shareholderClaims;
 
     mapping (address => Share) public shares;
 
@@ -1522,9 +1519,7 @@ contract DividendDistributor is IDividendDistributor {
     uint256 public totalDividends;
     uint256 public totalDistributed;
     uint256 public dividendsPerShare;
-    uint256 public dividendsPerShareAccuracyFactor = 10 ** 36;
-
-    uint256 currentIndex;
+    uint256 constant dividendsPerShareAccuracyFactor = 10 ** 36;
 
     modifier onlyToken() {
         require(msg.sender == _token); 
@@ -1533,6 +1528,7 @@ contract DividendDistributor is IDividendDistributor {
 
     event DividendTokenUpdate(address dividendToken);
     constructor (address _router) {
+
         // MAINNET 0xcF0feBd3f17CEf5b47b0cD257aCf6025c5BFf3b7
         router = _router != address(0)
             ? IDEXRouter(_router)
@@ -1582,10 +1578,12 @@ contract DividendDistributor is IDividendDistributor {
         uint256 amount = this.getUnpaidEarnings(shareholder);
         if(amount > 0){
             totalDistributed = totalDistributed.add(amount);
-            IERC20(dividendToken).transfer(shareholder, amount);
-            shareholderClaims[shareholder] = block.timestamp;
-            shares[shareholder].totalRealised = shares[shareholder].totalRealised.add(amount);
-            shares[shareholder].totalExcluded = getCumulativeDividends(shares[shareholder].amount);
+            bool status = IERC20(dividendToken).transfer(shareholder, amount);
+            if(status){
+                shareholderClaims[shareholder] = block.timestamp;
+                shares[shareholder].totalRealised = shares[shareholder].totalRealised.add(amount);
+                shares[shareholder].totalExcluded = getCumulativeDividends(shares[shareholder].amount);
+            }
         }
     }
     
@@ -1623,7 +1621,7 @@ contract DividendDistributor is IDividendDistributor {
         shareholders.pop();
     }
 
-    function getDividendToken() external view returns (address) {
+    function getDividendToken() external pure returns (address) {
         return dividendToken;
     }
 
