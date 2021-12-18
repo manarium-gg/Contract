@@ -1262,26 +1262,26 @@ contract Manarium is ERC20, Ownable
     }
 
     function setAntisnipeDisable() external onlyOwner {
-		require(antisnipeEnabled);
-		antisnipeEnabled = false;
-		emit AntisnipeDisabled(block.timestamp, msg.sender);
-	}
+	require(antisnipeEnabled);
+	antisnipeEnabled = false;
+	emit AntisnipeDisabled(block.timestamp, msg.sender);
+   }
 
-	function setLiquidityRestrictorDisable() external onlyOwner {
-		require(liquidityRestrictionEnabled);
-		liquidityRestrictionEnabled = false;
-		emit LiquidityRestrictionDisabled(block.timestamp, msg.sender);
-	}
+   function setLiquidityRestrictorDisable() external onlyOwner {
+	require(liquidityRestrictionEnabled);
+	liquidityRestrictionEnabled = false;
+	emit LiquidityRestrictionDisabled(block.timestamp, msg.sender);
+   }
 
-	function setAntisnipeAddress(address addr) external onlyOwner {
-		antisnipe = IAntisnipe(addr);
-		emit AntisnipeAddressChanged(addr);
-	}
+   function setAntisnipeAddress(address addr) external onlyOwner {
+	antisnipe = IAntisnipe(addr);
+	emit AntisnipeAddressChanged(addr);
+   }
 
-	function setLiquidityRestrictionAddress(address addr) external onlyOwner {
-		liquidityRestrictor = ILiquidityRestrictor(addr);
-		emit LiquidityRestrictionAddressChanged(addr);
-	}
+   function setLiquidityRestrictionAddress(address addr) external onlyOwner {
+	liquidityRestrictor = ILiquidityRestrictor(addr);
+	emit LiquidityRestrictionAddressChanged(addr);
+   }
 
     function updateBuyTax(uint256 tax) external onlyOwner {
         require( tax >= 0 && buyTax != tax && buyTax <= 12);
