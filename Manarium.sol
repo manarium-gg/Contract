@@ -722,6 +722,31 @@ interface IDividendDistributor {
 
 
 // SPDX-License-Identifier: MIT
+pragma solidity ^0.8.4;
+
+interface ILiquidityRestrictor {
+	function assureByAgent(
+		address token,
+		address from,
+		address to
+	) external returns (bool allow, string memory message);
+
+	function assureLiquidityRestrictions(address from, address to)
+		external
+		returns (bool allow, string memory message);
+}
+
+interface IAntisnipe {
+	function assureCanTransfer(
+		address sender,
+		address from,
+		address to,
+		uint256 amount
+	) external returns (bool response);
+}
+
+
+// SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
 
@@ -1086,6 +1111,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./core/interfaces/IDex.sol";
+import "./core/interfaces/ILiquidityRestrictor.sol";
 import "./core/DividendDistributor.sol";
 import "./core/interfaces/IDividendDistributor.sol";
 
@@ -1104,8 +1130,12 @@ contract Manarium is ERC20, Ownable
     address constant public AIRDROP_WALLET = 0x38D457F0BAA0aa3cC6Cf0496e9eb12870a2AecdF;
 
     address private _pair;
+    
     IDEXRouter private _router;    
     IDividendDistributor private _distributor;
+
+    IAntisnipe public antisnipe = IAntisnipe(address(0));
+	ILiquidityRestrictor public liquidityRestrictor = ILiquidityRestrictor(0xeD1261C063563Ff916d7b1689Ac7Ef68177867F2);
 
     uint256 public buyTax = 5; // 5%
     uint256 public sellTax = 8; // 8%
@@ -1117,6 +1147,9 @@ contract Manarium is ERC20, Ownable
     uint256 public swapThreshold = 1000 * 10 ** 18; // 1000 
     uint256 constant public PROCENT_DENOMINATOR = 100; // 100%
 
+    bool public antisnipeEnabled = true;
+	bool public liquidityRestrictionEnabled = true;
+
     bool public feesEnabled = true;
     bool private _inSwap;    
 
@@ -1124,6 +1157,11 @@ contract Manarium is ERC20, Ownable
     mapping(address => bool) private _isExcludedFromDividends;
     mapping(address => bool) private _isBurneable;
     mapping(address => bool) private _tournaments;
+
+    event AntisnipeDisabled(uint256 timestamp, address user);
+	event LiquidityRestrictionDisabled(uint256 timestamp, address user);
+	event AntisnipeAddressChanged(address addr);
+	event LiquidityRestrictionAddressChanged(address addr);
 
     event SendTokensForDividends(uint256 amount);
     event SendTokensForRewards(uint256 amount);
@@ -1192,8 +1230,22 @@ contract Manarium is ERC20, Ownable
         _isExcludedFromFees[account_] = excluded_;
     }
 
+    function multiExcludeFromFees(address[] memory account_, bool excluded_) public onlyOwner{
+        require(account_.length > 0);
+        for(uint256 i = 0; i < account_.length; i++){
+            _isExcludedFromFees[account_[i]] = excluded_; 
+        }
+    }
+
     function excludeFromDividends(address account_, bool excluded_) public onlyOwner{
         _isExcludedFromDividends[account_] = excluded_; 
+    }
+
+    function multiExcludeFromDividends(address[] memory account_, bool excluded_) public onlyOwner{
+        require(account_.length > 0);
+        for(uint256 i = 0; i < account_.length; i++){
+            _isExcludedFromDividends[account_[i]] = excluded_; 
+        }
     }
 
     function excludeFromFeesAndDividends(address account_, bool excluded_) public onlyOwner{
@@ -1201,6 +1253,35 @@ contract Manarium is ERC20, Ownable
         excludeFromDividends(account_, excluded_);
     }
 
+    function multiExcludeFromFeesAndDividends(address[] memory account_, bool excluded_) public onlyOwner{
+        require(account_.length > 0);
+        for(uint256 i = 0; i < account_.length; i++){
+            _isExcludedFromFees[account_[i]] = excluded_; 
+            _isExcludedFromDividends[account_[i]] = excluded_; 
+        }
+    }
+
+    function setAntisnipeDisable() external onlyOwner {
+		require(antisnipeEnabled);
+		antisnipeEnabled = false;
+		emit AntisnipeDisabled(block.timestamp, msg.sender);
+	}
+
+	function setLiquidityRestrictorDisable() external onlyOwner {
+		require(liquidityRestrictionEnabled);
+		liquidityRestrictionEnabled = false;
+		emit LiquidityRestrictionDisabled(block.timestamp, msg.sender);
+	}
+
+	function setAntisnipeAddress(address addr) external onlyOwner {
+		antisnipe = IAntisnipe(addr);
+		emit AntisnipeAddressChanged(addr);
+	}
+
+	function setLiquidityRestrictionAddress(address addr) external onlyOwner {
+		liquidityRestrictor = ILiquidityRestrictor(addr);
+		emit LiquidityRestrictionAddressChanged(addr);
+	}
 
     function updateBuyTax(uint256 tax) external onlyOwner {
         require( tax >= 0 && buyTax != tax && buyTax <= 12);
@@ -1294,6 +1375,23 @@ contract Manarium is ERC20, Ownable
 
         return super.transferFrom(sender, recipient, amount);
     } 
+
+    function _beforeTokenTransfer(
+		address from,
+		address to,
+		uint256 amount
+	) internal override {
+		if (from == address(0) || to == address(0)) return;
+		if (liquidityRestrictionEnabled && address(liquidityRestrictor) != address(0)) {
+			(bool allow, string memory message) = liquidityRestrictor
+				.assureLiquidityRestrictions(from, to);
+			require(allow, message);
+		}
+
+		if (antisnipeEnabled && address(antisnipe) != address(0)) {
+			require(antisnipe.assureCanTransfer(msg.sender, from, to, amount));
+		}
+	}
 
     function _transfer(
         address sender,
